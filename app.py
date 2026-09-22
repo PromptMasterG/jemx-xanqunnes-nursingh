@@ -11,6 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -23,6 +24,37 @@ NAVY = "#051D2E"
 CORAL = "#FF697F"
 CORAL_DARK = "#E1506B"
 CORAL_LIGHT = "#FF93A3"
+
+
+def risk_color(risk_score: float, max_score: float) -> str:
+    """Interpolate risk_score -> a coral-intensity color, so severity reads
+    at a glance instead of everyone getting the same flat accent color."""
+    t = 0.0 if max_score <= 0 else max(0.0, min(1.0, risk_score / max_score))
+    light = (0xFF, 0xC9, 0xD1)  # pale, low risk
+    dark = (0xC2, 0x1E, 0x3C)   # deep red, high risk
+    rgb = tuple(int(light[i] + (dark[i] - light[i]) * t) for i in range(3))
+    return f"rgb({rgb[0]},{rgb[1]},{rgb[2]})"
+
+
+def horizontal_bar_chart(series: pd.Series, color: str, value_title: str):
+    """Horizontal bars via Altair -- st.bar_chart truncates long category
+    names (site names, category names) when the column is narrow; putting
+    the category on the y-axis fixes that regardless of label length."""
+    chart_df = series.reset_index()
+    chart_df.columns = ["category", "hours"]
+    chart = (
+        alt.Chart(chart_df)
+        .mark_bar(color=color, cornerRadiusTopRight=3, cornerRadiusBottomRight=3)
+        .encode(
+            y=alt.Y("category:N", sort="-x", title=None),
+            x=alt.X("hours:Q", title=value_title),
+            tooltip=["category", "hours"],
+        )
+        .properties(height=alt.Step(28))
+        .configure_axis(labelColor="white", titleColor="white", grid=False, labelLimit=200)
+        .configure_view(strokeWidth=0)
+    )
+    st.altair_chart(chart, use_container_width=True)
 
 st.markdown(
     f"""
@@ -111,8 +143,9 @@ with left:
 
     merged = pred.merge(employees, on="employee_id", how="left")
     top = merged.sort_values("risk_score", ascending=False).head(20)
+    max_risk = top["risk_score"].max()
 
-    for _, row in top.iterrows():
+    for rank, (_, row) in enumerate(top.iterrows(), start=1):
         emp_notes = notes_hours[notes_hours["employee_id"] == row["employee_id"]]
         op_notes = emp_notes[emp_notes["bucket"] == "operational_failure"]
         if len(op_notes):
@@ -128,10 +161,23 @@ with left:
             action = ACTION_BY_CATEGORY["no_signal"]
 
         flag = "\U0001F534" if row["will_breach"] else "\U0001F7E1"
+        score_color = risk_color(row["risk_score"], max_risk)
+        is_top3 = rank <= 3
+        name_size = "20px" if is_top3 else "16px"
+        border_style = f"border-left: 4px solid {score_color};" if is_top3 else ""
+        badge = (
+            f"<span style='background:{CORAL}; color:white; font-size:11px; font-weight:700; "
+            f"padding:2px 8px; border-radius:10px; margin-left:8px;'>TOP {rank}</span>"
+            if is_top3 else ""
+        )
         with st.container(border=True):
             st.markdown(
-                f"{flag} **{row['full_name']}** ({row['employee_id']}) -- {row['role']}, {row['primary_site_id']} "
-                f"&nbsp;&nbsp; risk_score `{row['risk_score']:.2f}`"
+                f"<div style='{border_style} padding-left:{'10px' if is_top3 else '0'};'>"
+                f"<span style='font-size:{name_size}; font-weight:700;'>{flag} {row['full_name']}</span>"
+                f" ({row['employee_id']}) -- {row['role']}, {row['primary_site_id']}{badge}"
+                f"&nbsp;&nbsp; risk_score <span style='color:{score_color}; font-weight:700;'>{row['risk_score']:.2f}</span>"
+                f"</div>",
+                unsafe_allow_html=True,
             )
             st.markdown(f"Mon-Wed so far: **{row['mon_wed_hours']:.1f}h** -> predicted week total **{row['predicted_hours_personalized']:.1f}h** "
                         f"(predicted overtime **{row['predicted_overtime_personalized']:.1f}h**, cap is 10h)")
@@ -142,11 +188,11 @@ with right:
     st.markdown("### Where the operational-failure hours are")
     op = notes_hours[notes_hours["bucket"] == "operational_failure"]
     by_cat = op.groupby("category")["row_hours"].sum().sort_values(ascending=False)
-    st.bar_chart(by_cat, color=CORAL)
+    horizontal_bar_chart(by_cat, CORAL, "hours")
 
     st.markdown("**By site**")
     by_site = op.groupby("site_name")["row_hours"].sum().sort_values(ascending=False)
-    st.bar_chart(by_site, color=CORAL_DARK)
+    horizontal_bar_chart(by_site, CORAL_DARK, "hours")
 
     client_hours = notes_hours[notes_hours["bucket"] == "client_requested"]["row_hours"].sum()
     op_hours = op["row_hours"].sum()
