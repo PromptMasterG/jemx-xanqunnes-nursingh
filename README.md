@@ -4,6 +4,8 @@ Who's going to breach the 10h weekly overtime cap by Sunday, and what should
 somebody do about it today. See [NOTES.md](NOTES.md) for assumptions and
 validation, [ORIGINAL_BRIEF.md](ORIGINAL_BRIEF.md) for the assessment brief.
 
+**Live dashboard:** https://jemx-xanqunnes-nursingh-xwayfsvpnhbcjlxtmgxif2.streamlit.app/
+
 ## Run it locally
 
 ```bash
