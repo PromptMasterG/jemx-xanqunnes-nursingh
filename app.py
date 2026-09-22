@@ -58,14 +58,29 @@ def horizontal_bar_chart(series: pd.Series, color: str, value_title: str):
 
 st.markdown(
     f"""
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
     <style>
     .stApp {{ background-color: {NAVY}; }}
     h1, h2, h3, h4, p, label, .stMarkdown, span {{ color: #FFFFFF; }}
-    [data-testid="stMetricValue"] {{ color: {CORAL}; }}
+    h1, h2, h3, h4 {{ font-family: 'Sora', sans-serif; letter-spacing: -0.01em; }}
+    [data-testid="stMetricValue"] {{ color: {CORAL}; font-family: 'Sora', sans-serif; }}
     [data-testid="stMetricLabel"] {{ color: #FFFFFF; }}
     .stDataFrame {{ background-color: #0A2A40; }}
     div[data-testid="stSidebar"] {{ background-color: #03141F; }}
-    .streamlit-expanderHeader {{ color: #FFFFFF; }}
+    .streamlit-expanderHeader {{ color: #FFFFFF; font-family: 'Sora', sans-serif; }}
+
+    /* tighter, more considered rhythm */
+    div[data-testid="stVerticalBlock"] {{ gap: 0.6rem; }}
+    div[data-testid="stMainBlockContainer"] {{ padding-top: 2.2rem; }}
+    div[data-testid="stMetric"] {{
+        background: #0A2A40; border: 1px solid #163A52; border-radius: 10px;
+        padding: 10px 14px;
+    }}
+    div[data-testid="stContainer"] {{ border-radius: 10px !important; }}
+    div[data-testid="stContainer"]:has(div) {{
+        box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -94,9 +109,11 @@ def load_uploaded_overrides(uploaded_files, base: dict[str, pd.DataFrame]) -> di
 
 
 st.markdown(
-    f"<div style='background:{CORAL}; padding:14px 20px; border-radius:8px; margin-bottom:18px;'>"
-    f"<span style='font-size:22px; font-weight:700; color:white;'>jem</span> "
-    f"<span style='font-size:16px; color:white;'>&nbsp;Ops Room -- Overtime Risk</span></div>",
+    f"<div style='background:linear-gradient(135deg, {CORAL} 0%, {CORAL_DARK} 100%); "
+    f"padding:18px 24px; border-radius:10px; margin-bottom:22px; "
+    f"box-shadow: 0 4px 14px rgba(225,80,107,0.35);'>"
+    f"<span style='font-family:Sora,sans-serif; font-size:24px; font-weight:700; color:white;'>jem</span> "
+    f"<span style='font-size:16px; color:white; opacity:0.92;'>&nbsp;Ops Room -- Overtime Risk</span></div>",
     unsafe_allow_html=True,
 )
 
